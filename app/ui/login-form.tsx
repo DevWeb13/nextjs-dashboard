@@ -66,16 +66,14 @@ export default function LoginForm() {
           className="flex h-8 items-end space-x-1"
           aria-live="polite"
           aria-atomic="true"
-        >
+        ></div>
+        <div className="flex h-8 items-end space-x-1">
           {state === 'CredentialsSignin' && (
             <>
               <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
               <p className="text-sm text-red-500">Invalid credentials</p>
             </>
           )}
-        </div>
-        <div className="flex h-8 items-end space-x-1">
-          {/* Add form errors here */}
         </div>
       </div>
     </form>

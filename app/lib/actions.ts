@@ -5,8 +5,9 @@ import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
+import bcrypt from 'bcrypt';
 
-export type State = {
+export type InvoiceState = {
   errors?: {
     customerId?: string[];
     amount?: string[];
@@ -15,7 +16,16 @@ export type State = {
   message?: string | null;
 };
 
-const FormSchema = z.object({
+export type UserState = {
+  errors?: {
+    name?: string[];
+    email?: string[];
+    password?: string[];
+  };
+  message?: string | null;
+};
+
+const InvoiceSchema = z.object({
   id: z.string(),
   customerId: z.string({
     invalid_type_error: 'Please select a customer.',
@@ -29,8 +39,55 @@ const FormSchema = z.object({
   date: z.string(),
 });
 
-const CreateInvoice = FormSchema.omit({ id: true, date: true });
-const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+// Définir le schéma de validation avec Zod
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const CreateInvoice = InvoiceSchema.omit({ id: true, date: true });
+const UpdateInvoice = InvoiceSchema.omit({ id: true, date: true });
+const CreateUser = UserSchema.omit({ id: true });
+
+export async function registerUser(prevState: UserState, formData: FormData) {
+  // Valider les données du formulaire
+  const validatedUser = CreateUser.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+  });
+
+  // Si la validation échoue, retourner les erreurs
+  if (!validatedUser.success) {
+    return {
+      errors: validatedUser.error.flatten().fieldErrors,
+      message: 'Invalid user data. Please check your input.',
+    };
+  }
+
+  const { name, email, password } = validatedUser.data;
+
+  // Chiffrer le mot de passe
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Insérer l'utilisateur dans la base de données
+  try {
+    await sql`
+      INSERT INTO users (name, email, password)
+      VALUES (${name}, ${email}, ${hashedPassword});
+    `;
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to register user.',
+    };
+  }
+
+  // Revalider le cache pour la page d'utilisateur et rediriger l'utilisateur
+  revalidatePath('/dashboard');
+  redirect('/dashboard');
+}
 
 export async function authenticate(
   prevState: string | undefined,
@@ -46,7 +103,10 @@ export async function authenticate(
   }
 }
 
-export async function createInvoice(prevState: State, formData: FormData) {
+export async function createInvoice(
+  prevState: InvoiceState,
+  formData: FormData,
+) {
   // Validate form using Zod
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
@@ -87,7 +147,7 @@ export async function createInvoice(prevState: State, formData: FormData) {
 
 export async function updateInvoice(
   id: string,
-  prevState: State,
+  prevState: InvoiceState,
   formData: FormData,
 ) {
   // Validate form using Zod
