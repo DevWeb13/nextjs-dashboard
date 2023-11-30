@@ -34,12 +34,20 @@ export default function SignUpForm() {
               <input
                 className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500"
                 id="name"
-                type="name"
+                type="text"
                 name="name"
                 placeholder="Entrer votre nom"
-                required
+                aria-describedby="name-error"
               />
               <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+            </div>
+            <div id="name-error" aria-live="polite" aria-atomic="true">
+              {state.errors?.name &&
+                state.errors.name.map((error: string) => (
+                  <p className="mt-2 text-sm text-red-500" key={error}>
+                    {error}
+                  </p>
+                ))}
             </div>
           </div>
           <div>
@@ -56,9 +64,17 @@ export default function SignUpForm() {
                 type="email"
                 name="email"
                 placeholder="Entrer votre adresse email"
-                required
+                aria-describedby="email-error"
               />
               <AtSymbolIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+            </div>
+            <div id="email-error" aria-live="polite" aria-atomic="true">
+              {state.errors?.email &&
+                state.errors.email.map((error: string) => (
+                  <p className="mt-2 text-sm text-red-500" key={error}>
+                    {error}
+                  </p>
+                ))}
             </div>
           </div>
           <div className="mt-4">
@@ -75,10 +91,18 @@ export default function SignUpForm() {
                 type="password"
                 name="password"
                 placeholder="Entrer votre mot de passe"
-                required
                 minLength={6}
+                aria-describedby="password-error"
               />
               <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+            </div>
+            <div id="password-error" aria-live="polite" aria-atomic="true">
+              {state.errors?.password &&
+                state.errors.password.map((error: string) => (
+                  <p className="mt-2 text-sm text-red-500" key={error}>
+                    {error}
+                  </p>
+                ))}
             </div>
           </div>
           <div className="mt-4">
@@ -92,13 +116,25 @@ export default function SignUpForm() {
               <input
                 className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500"
                 id="confirmPassword"
-                type="confirmPassword"
+                type="password"
                 name="confirmPassword"
                 placeholder="Confirmer votre mot de passe"
-                required
                 minLength={6}
+                aria-describedby="confirmPassword-error"
               />
               <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+            </div>
+            <div
+              id="confirmPassword-error"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {state.errors?.confirmPassword &&
+                state.errors.confirmPassword.map((error: string) => (
+                  <p className="mt-2 text-sm text-red-500" key={error}>
+                    {error}
+                  </p>
+                ))}
             </div>
           </div>
         </div>
@@ -115,6 +151,19 @@ export default function SignUpForm() {
               <p className="text-sm text-red-500">Invalid credentials</p>
             </>
           )} */}
+          <div
+            id="error"
+            aria-live="polite"
+            aria-atomic="true"
+            className="flex h-8 items-end space-x-1"
+          >
+            {state.message && (
+              <>
+                <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+                <p className="mt-2 text-sm text-red-500">{state.message}</p>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </form>

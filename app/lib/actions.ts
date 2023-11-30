@@ -21,6 +21,7 @@ export type UserState = {
     name?: string[];
     email?: string[];
     password?: string[];
+    confirmPassword?: string[];
   };
   message?: string | null;
 };
@@ -39,35 +40,67 @@ const InvoiceSchema = z.object({
   date: z.string(),
 });
 
-// Définir le schéma de validation avec Zod
+// Définir le schéma de base de l'utilisateur
 const UserSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  email: z.string().email(),
-  password: z.string().min(6),
+  name: z
+    .string()
+    .min(1, 'Le nom est requis.')
+    .min(3, 'Le nom doit comporter au moins 3 caractères.')
+    .regex(/^[A-Za-z]+$/, 'Le nom ne doit contenir que des lettres.'),
+  email: z.string().email("L'e-mail doit être valide."),
+  password: z
+    .string()
+    .min(6, 'Le mot de passe doit comporter au moins 6 caractères.'),
 });
 
 const CreateInvoice = InvoiceSchema.omit({ id: true, date: true });
 const UpdateInvoice = InvoiceSchema.omit({ id: true, date: true });
-const CreateUser = UserSchema.omit({ id: true });
+
+// Schéma pour la création d'un utilisateur, en omettant 'id' et en ajoutant 'confirmPassword'
+const CreateUser = UserSchema.omit({ id: true }).extend({
+  confirmPassword: z
+    .string()
+    .min(6, 'Le mot de passe doit comporter au moins 6 caractères.'),
+});
 
 export async function registerUser(prevState: UserState, formData: FormData) {
-  // Valider les données du formulaire
+  // Valider les données du formulaire avec le schéma Zod étendu
   const validatedUser = CreateUser.safeParse({
     name: formData.get('name'),
     email: formData.get('email'),
     password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
   });
 
   // Si la validation échoue, retourner les erreurs
   if (!validatedUser.success) {
     return {
       errors: validatedUser.error.flatten().fieldErrors,
-      message: 'Invalid user data. Please check your input.',
+      message: 'Veuillez vérifier vos saisies.',
     };
   }
 
-  const { name, email, password } = validatedUser.data;
+  const { name, email, password, confirmPassword } = validatedUser.data;
+
+  // Vérifier si les mots de passe correspondent
+  if (password !== confirmPassword) {
+    return {
+      errors: { confirmPassword: ['Les mots de passe ne correspondent pas.'] },
+      message: 'Veuillez vérifier vos saisies.',
+    };
+  }
+
+  // Vérifier l'unicité de l'e-mail
+  const existingUser = await sql`
+    SELECT * FROM users WHERE email = ${email}
+  `;
+  if (existingUser.rowCount > 0) {
+    return {
+      errors: { email: ['Cet e-mail est déjà utilisé par un autre compte.'] },
+      message: 'Veuillez vérifier vos saisies.',
+    };
+  }
 
   // Chiffrer le mot de passe
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -80,7 +113,7 @@ export async function registerUser(prevState: UserState, formData: FormData) {
     `;
   } catch (error) {
     return {
-      message: 'Database Error: Failed to register user.',
+      message: 'Erreur de base de données : inscription impossible.',
     };
   }
 
@@ -97,7 +130,7 @@ export async function authenticate(
     await signIn('credentials', Object.fromEntries(formData));
   } catch (error) {
     if ((error as Error).message.includes('CredentialsSignin')) {
-      return 'CredentialsSignin';
+      return 'Données incorrectes.';
     }
     throw error;
   }
