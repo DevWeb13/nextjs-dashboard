@@ -40,6 +40,7 @@ export function Card({
   type: 'invoices' | 'customers' | 'pending' | 'collected';
 }) {
   const Icon = iconMap[type];
+  console.log(value);
 
   return (
     <div className="rounded-xl bg-gray-50 p-2 shadow-sm">
